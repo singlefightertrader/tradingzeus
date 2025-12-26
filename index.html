@@ -12,6 +12,7 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { margin: 0; background: #000; color: #00ff66; font-family: 'Courier New', monospace; overflow: hidden; }
         
+        /* HEADER STATUS */
         #status-bar { 
             position: fixed; top: 0; width: 100%; height: 45px; 
             background: rgba(0,0,0,0.95); display: flex; align-items: center; 
@@ -20,6 +21,7 @@
             text-transform: uppercase; letter-spacing: 1px;
         }
 
+        /* HIGH ACCURACY ZONE OVERLAY */
         #disc-zone {
             position: fixed; left: 0; right: 0; top: 50%; height: 100px;
             margin-top: -50px; border-top: 1px dashed rgba(0,255,255,0.3);
@@ -39,6 +41,13 @@
             display: none; z-index: 9999; font-weight: bold; text-align: center;
         }
 
+        /* MID LINE VISUAL */
+        #mid-line {
+            position: fixed; left: 0; right: 0; top: 50%; height: 1px;
+            background: rgba(255,255,255,0.2); z-index: 9997; display: none;
+        }
+
+        /* MISSION DRAWER */
         #toggle-mission {
             position: fixed; top: 55px; left: 10px; z-index: 10001;
             background: rgba(255,255,255,0.1); border: 1px solid #555;
@@ -59,31 +68,32 @@
         .dir-down { color: #ff4444; }
         .achieved { opacity: 0.15; filter: grayscale(1); }
 
-        .chart-frame { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
-        #tf-selector { position: fixed; top: 55px; right: 10px; z-index: 10002; display: flex; flex-direction: column; gap: 6px; }
-        .tf-btn { background: rgba(0,0,0,0.7); border: 1px solid #444; color: #fff; padding: 10px; border-radius: 6px; font-size: 10px; font-weight: bold; width: 48px; cursor: pointer; }
+        /* INTERFACE ELEMENTS */
+        .chart-frame { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        
+        #tf-selector { position: fixed; top: 55px; right: 10px; z-index: 10000; display: flex; flex-direction: column; gap: 6px; }
+        .tf-btn { background: rgba(0,0,0,0.7); border: 1px solid #444; color: #fff; padding: 10px; border-radius: 6px; font-size: 10px; font-weight: bold; width: 48px; }
         .tf-btn.active { border-color: var(--cyan); color: var(--cyan); background: rgba(0,255,255,0.1); }
 
         #action-panel { position: fixed; bottom: 85px; left: 5%; width: 90%; display: flex; gap: 12px; z-index: 10001; }
-        .btn-trade { flex: 1; padding: 18px; border: none; border-radius: 10px; font-weight: 900; font-size: 16px; letter-spacing: 1px; transition: 0.2s; cursor: pointer; }
-        .btn-trade:disabled { background: #1a1a1a !important; color: #444 !important; transform: scale(1) !important; cursor: not-allowed; }
+        .btn-trade { flex: 1; padding: 18px; border: none; border-radius: 10px; font-weight: 900; font-size: 16px; letter-spacing: 1px; transition: 0.2s; }
+        .btn-trade:disabled { background: #1a1a1a !important; color: #444 !important; transform: scale(1) !important; }
+        .btn-trade:active { transform: scale(0.92); }
 
-        #footer { position: fixed; bottom: 0; width: 100%; height: 50px; background: #000; border-top: 1px solid #222; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; font-size: 11px; z-index: 10000; }
-
-        #sound-unlocker { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 20000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        #footer { 
+            position: fixed; bottom: 0; width: 100%; height: 50px; 
+            background: #000; border-top: 1px solid #222; display: flex; 
+            justify-content: space-between; align-items: center; padding: 0 20px; 
+            font-size: 11px; z-index: 10000; 
+        }
     </style>
 </head>
 <body>
 
-<div id="sound-unlocker">
-    <div style="color:var(--cyan); font-size:14px; margin-bottom:20px; font-weight:bold; font-family:monospace;">XAU ENGINE V11</div>
-    <button onclick="startSystem()" style="background:var(--cyan); color:#000; border:none; padding:20px 40px; border-radius:10px; font-weight:900; font-size:18px; cursor:pointer; box-shadow: 0 0 20px var(--cyan);">
-        ACTIVATE SYSTEM & SOUND
-    </button>
-</div>
-
 <div id="status-bar">CONNECTING TO ENGINE...</div>
+
 <div id="disc-zone"></div>
+<div id="mid-line"></div>
 <div id="disc-zone-label">M5 ASYMMETRIC ZONE</div>
 
 <button id="toggle-mission" onclick="toggleMissionPanel()">MISSIONS ↓</button>
@@ -122,28 +132,16 @@
     const WS_URL = "wss://xauusdsuperfinal.sapammeded.workers.dev/";
     let ws;
     let currentBid = 0;
-    let soundReady = false;
-
-    // AUDIO LOGIC (ZEUS.MP3)
-    const zeusSound = new Audio("zeus.mp3");
-    zeusSound.preload = "auto";
-
-    function startSystem() {
-        zeusSound.play().then(() => {
-            zeusSound.pause(); zeusSound.currentTime = 0;
-            soundReady = true;
-            document.getElementById('sound-unlocker').style.display = 'none';
-        }).catch(e => console.log("Click required"));
-    }
-
-    function playZeus() {
-        if (!soundReady) return;
-        zeusSound.currentTime = 0;
-        zeusSound.play().catch(e => {});
-    }
-
-    function toggleMissionPanel() { 
-        document.getElementById('mission-panel').classList.toggle('show'); 
+    
+    // Audio Context for High Accuracy Confirm
+    const alertCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playConfirmSound() {
+        const osc = alertCtx.createOscillator();
+        const gain = alertCtx.createGain();
+        osc.connect(gain); gain.connect(alertCtx.destination);
+        osc.type = 'sine'; osc.frequency.setValueAtTime(1200, alertCtx.currentTime);
+        gain.gain.setValueAtTime(0.1, alertCtx.currentTime);
+        osc.start(); osc.stop(alertCtx.currentTime + 0.15);
     }
 
     function toggleMode() {
@@ -152,6 +150,8 @@
         const next = el.innerText.includes("PROP") ? "DISCRETIONARY" : "PROP_DESK";
         ws.send(JSON.stringify({ cmd: "SET_MODE", mode: next }));
     }
+
+    function toggleMissionPanel() { document.getElementById('mission-panel').classList.toggle('show'); }
     
     function changeTF(interval, btn) {
         document.getElementById('tv-chart').src = `https://s.tradingview.com/widgetembed/?symbol=OANDA:XAUUSD&interval=${interval}&theme=dark`;
@@ -173,9 +173,9 @@
                     bar.innerText = "⚠️ DISCRETIONARY: WAIT FOR 4s CONFIRM";
                     bar.style.color = "#ffff00";
                 } else {
-                    el.innerText = "MODE: PROP"; el.style.borderColor = "#00ff66"; el.style.color = "#00ff66";
+                    el.innerText = "MODE: PROP"; el.style.borderColor = "#00ff66"; el.style.color = "#0000";
                     bar.innerText = "🛡️ PROP DESK ACTIVE";
-                    bar.style.color = "#00ff66";
+                    bar.style.color = "#0000";
                 }
             }
 
@@ -184,35 +184,43 @@
                 document.getElementById('price-display').innerText = `XAU: ${data.bid}`;
                 document.getElementById('rescue-display').innerText = `RESCUE: ${data.rescue}/2`;
 
+                // ✅ ACCURACY ZONE VISUALS
                 const zoneEl = document.getElementById('disc-zone');
                 const labelEl = document.getElementById('disc-zone-label');
+                const midEl = document.getElementById('mid-line');
                 const dz = data.discretionaryZone;
 
                 if (data.mode === "DISCRETIONARY" && dz?.low) {
-                    zoneEl.style.display = "block"; labelEl.style.display = "block";
+                    zoneEl.style.display = "block";
+                    labelEl.style.display = "block";
+                    midEl.style.display = "block";
+                    
                     labelEl.innerHTML = `<span style="color:#fff">${dz.bias} BIAS</span> | ${dz.state}<br><small>${dz.low} - ${dz.high}</small>`;
                     
                     if (dz.state === "ENTER") {
                         zoneEl.classList.add('state-enter');
                         bar.innerText = "⚡ ACCURACY CONFIRMED: EXECUTE " + dz.bias;
-                        bar.style.background = "rgba(0,255,255,0.9)"; bar.style.color = "#000";
-                        if (dz.alert) playZeus();
+                        bar.style.background = "rgba(0,255,255,0.9)";
+                        bar.style.color = "#000";
+                        if (dz.alert) playConfirmSound();
                     } else {
                         zoneEl.classList.remove('state-enter');
                         bar.innerText = "WAITING FOR 4s STABILITY...";
-                        bar.style.background = "rgba(0,0,0,0.95)"; bar.style.color = "#ffff00";
+                        bar.style.background = "rgba(0,0,0,0.95)";
+                        bar.style.color = "#ffff00";
                     }
                 } else {
-                    zoneEl.style.display = "none"; labelEl.style.display = "none";
+                    zoneEl.style.display = "none";
+                    labelEl.style.display = "none";
+                    midEl.style.display = "none";
                     if (data.mode === "DISCRETIONARY") bar.style.background = "rgba(0,0,0,0.95)";
                 }
 
-                // RESTORE: AUTO LOCK ENTRY (STORY & RESCUE)
+                // MISSION & LOCK HANDLER
                 const isLocked = !data.storyActive || data.rescue === 2;
                 document.getElementById('btn-buy').disabled = isLocked;
                 document.getElementById('btn-sell').disabled = isLocked;
 
-                // RESTORE: MISSION TIMER LOGIC
                 ['h1', 'm30', 'm15', 'm5', 'm1'].forEach(tf => {
                     const valEl = document.getElementById(`${tf}-val`);
                     const timEl = document.getElementById(`${tf}-timer`);
@@ -230,7 +238,9 @@
                     } else {
                         rowEl.classList.remove('achieved'); timEl.innerText = "";
                         const target = parseFloat(mVal);
-                        valEl.innerHTML = `<span class="${target > currentBid ? 'dir-up':'dir-down'}">${target > currentBid ? 'UP ▲':'DOWN ▼'}</span> <b>${mVal}</b>`;
+                        const dir = target > currentBid ? "UP ▲" : "DOWN ▼";
+                        const cls = target > currentBid ? "dir-up" : "dir-down";
+                        valEl.innerHTML = `<span class="${cls}">${dir}</span> <b>${mVal}</b>`;
                     }
                 });
             }
@@ -241,12 +251,17 @@
                 bar.style.color = data.ok ? "#000" : "#fff";
             }
         };
-        ws.onclose = () => { setTimeout(connect, 2000); };
+
+        ws.onclose = () => { bar.innerText = "RECONNECTING..."; setTimeout(connect, 2000); };
     }
 
     function sendEntry(side) { 
-        if (ws && ws.readyState === 1) ws.send(JSON.stringify({ cmd: "ENTRY", side: side })); 
+        if (ws && ws.readyState === 1) {
+            if (alertCtx.state === 'suspended') alertCtx.resume();
+            ws.send(JSON.stringify({ cmd: "ENTRY", side: side })); 
+        }
     }
+
     connect();
 </script>
 </body>
